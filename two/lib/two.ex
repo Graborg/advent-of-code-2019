@@ -40,5 +40,19 @@ defmodule Two do
     |> calculate()
   end
 
+  def run2 do
+    input = get_puzzle_input()
+    for noun <- 1..99, verb <- 1..99 do
+      ans = input
+      |> List.replace_at(1, noun)
+      |> List.replace_at(2, verb)
+      |> calculate()
+      |> List.first()
+
+      if ans === 19690720, do: IO.inspect("#{noun} #{verb}")
+
+    end
+  end
+
 end
-Two.run()
+
