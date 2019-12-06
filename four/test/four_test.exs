@@ -14,7 +14,6 @@ defmodule FourTest do
     assert Four.get_amount_of_possible_passwords("123788-123790") == 0
   end
 
-
   test "111110 does not meet the criteria" do
     assert Four.get_amount_of_possible_passwords("111110-111115") == 4
   end
