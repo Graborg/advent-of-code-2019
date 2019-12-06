@@ -2,9 +2,7 @@ defmodule Four do
   def get_amount_of_possible_passwords(input) do
     input
       |> String.split("-")
-      |> (fn [start, stop] ->
-        {get_input_as_list(start), get_input_as_list(stop)}
-      end).()
+      |> Enum.map(&get_input_as_list/1)
       |> increase()
       |> Enum.count()
   end
@@ -16,7 +14,7 @@ defmodule Four do
   end
 
   def insert_password_if_eligible(passwords, possible_password, stop) do
-    with true <- adjacent_digits_same?(possible_password),
+    with {:ok, _digit} <- adjacent_digits_same?(possible_password),
          true <- always_increasing?(possible_password),
          true <- within_bounds?(possible_password, stop)
           do
@@ -31,57 +29,53 @@ defmodule Four do
   end
 
   def adjacent_digits_same?(possible_password) do
-    Enum.reduce_while(possible_password, {false, 0}, fn digit, {false, repeated} ->
-      if digit == repeated do
-        {:halt, {true, digit}}
-      else
-        {:cont, {false, digit}}
-      end
-    end)
-    |> elem(0)
+    Enum.reduce_while(possible_password, {nil, 0}, fn
+      digit, {_, previous_digit} when digit == previous_digit -> {:halt, {:ok, digit}}
+      digit, _ -> {:cont, {nil, digit}} end
+    )
   end
 
   def within_bounds?(possible_password, stop) when possible_password < stop, do: true
   def within_bounds?(_, _), do: false
 
   def increase(input, passwords \\ [])
-  def increase({counter, stop}, passwords) when counter >= stop, do: passwords
+  def increase([counter, stop], passwords) when counter >= stop, do: passwords
 
-  def increase({[preceding, 9, _, _, _, _] = counter, stop}, passwords) do
+  def increase([[preceding, 9, _, _, _, _] = counter, stop], passwords) do
     counter
     |> bump_trailing_digits(0, preceding + 1)
-    |> (fn possible_password -> increase({possible_password, stop}, insert_password_if_eligible(passwords, possible_password, stop)) end).()
+    |> (fn possible_password -> increase([possible_password, stop], insert_password_if_eligible(passwords, possible_password, stop)) end).()
   end
 
 
-  def increase({[_, preceding, 9, _, _, _] = counter, stop}, passwords) do
+  def increase([[_, preceding, 9, _, _, _] = counter, stop], passwords) do
     counter
     |> bump_trailing_digits(1, preceding + 1)
-    |> (fn possible_password -> increase({possible_password, stop}, insert_password_if_eligible(passwords, possible_password, stop)) end).()
+    |> (fn possible_password -> increase([possible_password, stop], insert_password_if_eligible(passwords, possible_password, stop)) end).()
   end
 
-  def increase({[_, _, preceding, 9, _, _] = counter, stop}, passwords) do
+  def increase([[_, _, preceding, 9, _, _] = counter, stop], passwords) do
     counter
       |> bump_trailing_digits(2, preceding + 1)
-      |> (fn possible_password -> increase({possible_password, stop}, insert_password_if_eligible(passwords, possible_password, stop)) end).()
+      |> (fn possible_password -> increase([possible_password, stop], insert_password_if_eligible(passwords, possible_password, stop)) end).()
   end
 
-  def increase({[_, _, _, preceding, 9, _] = counter, stop}, passwords) do
+  def increase([[_, _, _, preceding, 9, _] = counter, stop], passwords) do
     counter
       |> bump_trailing_digits(3, preceding + 1)
-      |> (fn possible_password -> increase({possible_password, stop}, insert_password_if_eligible(passwords, possible_password, stop)) end).()
+      |> (fn possible_password -> increase([possible_password, stop], insert_password_if_eligible(passwords, possible_password, stop)) end).()
   end
 
-  def increase({[_, _, _, _, preceding, 9] = counter, stop}, passwords) do
+  def increase([[_, _, _, _, preceding, 9] = counter, stop], passwords) do
     counter
       |> bump_trailing_digits(4, preceding + 1)
-      |> (fn possible_password -> increase({possible_password, stop}, insert_password_if_eligible(passwords, possible_password, stop)) end).()
+      |> (fn possible_password -> increase([possible_password, stop], insert_password_if_eligible(passwords, possible_password, stop)) end).()
   end
 
-  def increase({counter, stop}, passwords) do
+  def increase([counter, stop], passwords) do
     counter
       |> List.update_at(5, &(&1 + 1))
-      |> (fn possible_password -> increase({possible_password, stop}, insert_password_if_eligible(passwords, possible_password, stop)) end).()
+      |> (fn possible_password -> increase([possible_password, stop], insert_password_if_eligible(passwords, possible_password, stop)) end).()
   end
 
   def bump_trailing_digits(counter, start_index, value) do
