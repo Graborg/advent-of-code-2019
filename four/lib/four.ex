@@ -35,7 +35,7 @@ defmodule Four do
   end
 
   def insert_password_if_eligible(possible_password, passwords, stop) do
-    with {:ok, _digit} <- adjacent_digits_same?(possible_password),
+    with {:match_found, _digit} <- adjacent_digits_same?(possible_password),
          true <- always_increasing?(possible_password),
          {:ok, :inside_bounds} <- within_bounds?(possible_password, stop)
           do
@@ -53,9 +53,12 @@ defmodule Four do
   def always_increasing?(possible_password), do: possible_password == Enum.sort(possible_password)
 
   def adjacent_digits_same?(possible_password) do
-    Enum.reduce_while(possible_password, {nil, 0}, fn
-      digit, {_, previous_digit} when digit == previous_digit -> {:halt, {:ok, digit}}
-      digit, _ -> {:cont, {nil, digit}}
+    Enum.reduce_while(possible_password, {:no_match, 0}, fn
+      digit, {:match_found, previous_digit} when digit != previous_digit -> {:halt, {:match_found, digit}}
+      digit, {:match_found, previous_digit} when digit == previous_digit -> {:cont, {:too_many_adjacent, digit}}
+      digit, {:too_many_adjacent, previous_digit} when digit == previous_digit -> {:cont, {:too_many_adjacent, digit}}
+      digit, {:no_match, previous_digit} when digit == previous_digit -> {:cont, {:match_found, digit}}
+      digit, _ -> {:cont, {:no_match, digit}}
     end)
   end
 
