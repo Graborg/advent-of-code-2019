@@ -1,4 +1,18 @@
 defmodule Four do
+  def get_amount_of_possible_passwords_extra_criteria(input) do
+    input
+      |> String.split("-")
+      |> Enum.map(&get_input_as_list/1)
+      |> increase()
+      |> Enum.filter(fn x -> repeats_exactly_twice?(Enum.join(x)) end)
+      |> Enum.count()
+  end
+
+  def repeats_exactly_twice?(str) do
+    first_digit_match = String.at(str, 0) == String.at(str, 1) and String.at(str, 0) != String.at(str, 2)
+    first_digit_match or Regex.match?(~r/(?!([\d])\1\1)(\d)([\d])\3(?!\3)/, str)
+  end
+
   def get_amount_of_possible_passwords(input) do
     input
       |> String.split("-")
@@ -35,7 +49,7 @@ defmodule Four do
   end
 
   def insert_password_if_eligible(possible_password, passwords, stop) do
-    with {:match_found, _digit} <- adjacent_digits_same?(possible_password),
+    with {:ok, _digit} <- adjacent_digits_same?(possible_password),
          true <- always_increasing?(possible_password),
          {:ok, :inside_bounds} <- within_bounds?(possible_password, stop)
           do
@@ -53,12 +67,9 @@ defmodule Four do
   def always_increasing?(possible_password), do: possible_password == Enum.sort(possible_password)
 
   def adjacent_digits_same?(possible_password) do
-    Enum.reduce_while(possible_password, {:no_match, 0}, fn
-      digit, {:match_found, previous_digit} when digit != previous_digit -> {:halt, {:match_found, digit}}
-      digit, {:match_found, previous_digit} when digit == previous_digit -> {:cont, {:too_many_adjacent, digit}}
-      digit, {:too_many_adjacent, previous_digit} when digit == previous_digit -> {:cont, {:too_many_adjacent, digit}}
-      digit, {:no_match, previous_digit} when digit == previous_digit -> {:cont, {:match_found, digit}}
-      digit, _ -> {:cont, {:no_match, digit}}
+    Enum.reduce_while(possible_password, {nil, 0}, fn
+      digit, {_, previous_digit} when digit == previous_digit -> {:halt, {:ok, digit}}
+      digit, _ -> {:cont, {nil, digit}}
     end)
   end
 
