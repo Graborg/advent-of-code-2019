@@ -1,15 +1,10 @@
 defmodule Five do
-  # Support opcode 3 - input (param: address)
-  # Support opcode 4 - output (param: address)
-  # Param mode 1-3 digits
-  #   support positionmode 0
-  #   support immediate mode 1
-
-
   def get_puzzle_input do
     with {:ok, body} <- File.read("input.json"),
          {:ok, json} <- Poison.decode(body), do: json
   end
+
+  def execute({99, all_ints}, _, _), do: {:exit, all_ints}
 
   def execute({1, arg1, arg2, storage_pos, index}, all_ints, _) do
     IO.puts("inserting #{arg1 + arg2} at #{storage_pos}, currently at that position is: #{Enum.at(all_ints, storage_pos)} \n ")
@@ -44,17 +39,36 @@ defmodule Five do
   # print the value
   def execute({4, value, index}, all_ints, _) do
     IO.puts("OUTPUT! #{value}\n\n\n")
-    if value != 0 do
-      if (Enum.at(all_ints, index) == 99) do
-        exit("nice")
-      end
-      exit("wrong")
-    end
 
-    {:ok, all_ints, index}
+    {:exit, value}
   end
 
-  def execute({99, all_ints}, _, _), do: {:exit, all_ints}
+
+  # jump to jump_position if value is non-zero
+  def execute({5, 0, _jump_position, index}, all_ints, _), do: {:ok, all_ints, index}
+  def execute({5, _value, jump_position, _index}, all_ints, _), do: {:ok, all_ints, jump_position}
+
+  # jump to jump_position if value1 is zero
+  def execute({6, 0, jump_position, _index}, all_ints, _), do: {:ok, all_ints, jump_position}
+  def execute({6, _value, _jump_position, index}, all_ints, _), do: {:ok, all_ints, index}
+
+  # 1 in memory if v1 less than v2 (otherwise 0)
+  def execute({7, v1, v2, storage_pos, index}, all_ints, _) when v1 < v2, do: store(all_ints, 1, storage_pos, index)
+  def execute({7, _, _, storage_pos, index}, all_ints, _), do: store(all_ints, 0, storage_pos, index)
+
+  # 1 in memory v1 equals v2 (otherwise 0)
+  def execute({8, v1, v2, storage_pos, index}, all_ints, _) when v1 == v2, do: store(all_ints, 1, storage_pos, index)
+  def execute({8, _, _, storage_pos, index}, all_ints, _), do: store(all_ints, 0, storage_pos, index)
+
+  def store(memory, value, storage_pos, index) do
+    memory
+    |> List.replace_at(storage_pos, value)
+    |> case do updated_list ->
+      IO.puts("inserted #{Enum.at(updated_list, storage_pos)} at #{storage_pos}")
+      {:ok, updated_list, index}
+    end
+  end
+
 
   def get_arguments(all_ints, index) do
     {modes, opcode} = all_ints
@@ -67,7 +81,7 @@ defmodule Five do
     |> Integer.undigits()
     |> IO.inspect(label: "OPcode")
     |> case do
-      code when code in [02, 01] ->
+      code when code in [1, 2, 7, 8] ->
         IO.inspect(Enum.slice(all_ints, index-1, 4), label: "grabbing 4")
         [arg1, arg2] = Enum.slice(all_ints, index, 2) |> arguments_to_values(modes, all_ints)
         output = Enum.at(all_ints, index + 2)
@@ -78,9 +92,15 @@ defmodule Five do
         IO.inspect(Enum.slice(all_ints, index-1, 2), label: "grabbing 2")
         [arg] = Enum.slice(all_ints, index, 1) |> arguments_to_values(modes, all_ints)
         {4, arg, index + 1}
-      9 -> {99, all_ints}
+      code when code in [5, 6] ->
+        IO.inspect(Enum.slice(all_ints, index-1, 3), label: "grabbing 3p")
+        [number_to_compare, jump_pos] = Enum.slice(all_ints, index, 3) |> arguments_to_values(modes, all_ints)
+        {code, number_to_compare, jump_pos, index + 2}
+      99 -> {99, all_ints}
       end
   end
+  # OPcode 5; 2 params
+  # OPcode 6; 2 params
 
   def arguments_to_values(args, [], all_ints), do: arguments_to_values(args, [0], all_ints)
 
@@ -109,8 +129,9 @@ defmodule Five do
       end).()
   end
 
-  def run_program_with_input(diagnostic_program, user_input) do
-    calculate(diagnostic_program, user_input)
+  def run_program_with_input(user_input) do
+    get_puzzle_input()
+    |> calculate(user_input)
   end
 
 end
