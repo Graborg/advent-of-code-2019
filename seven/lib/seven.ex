@@ -1,9 +1,4 @@
-defmodule Seven do
-  def get_puzzle_input do
-    with {:ok, body} <- File.read("input.json"),
-         {:ok, json} <- Poison.decode(body), do: json
-  end
-
+defmodule IntComputer do
   def execute({99, all_ints}, _, _), do: {:exit, all_ints}
 
   def execute({1, arg1, arg2, storage_pos, index}, all_ints, _) do
@@ -130,6 +125,13 @@ defmodule Seven do
         { :exit, memory } -> { :exit, memory }
       end).()
   end
+end
+
+defmodule Seven do
+  def get_puzzle_input do
+    with {:ok, body} <- File.read("input.json"),
+         {:ok, json} <- Poison.decode(body), do: json
+  end
 
   def run_amplifiers(computer, phase_settings) do
     Enum.reduce(0..4, 0, fn
@@ -138,8 +140,7 @@ defmodule Seven do
   end
 
   def run_amplifier(computer, input, phase_setting) do
-    IO.inspect([phase_setting, input], label: "running amplifier")
-    calculate(computer, [phase_setting, input])
+    IntComputer.calculate(computer, [phase_setting, input])
   end
 
   def get_max_thruster_feedback_settings(possible_phase_settings, memory) do
@@ -168,18 +169,18 @@ defmodule Seven do
 
   def get_max_thruster_feedback_settings do
     computer = get_puzzle_input()
-    get_permutations(Enum.to_list 5..9)
+    get_permutations(5..9)
       |> get_max_thruster_feedback_settings(computer)
   end
 
   def get_max_thruster_settings() do
     computer = get_puzzle_input()
-    get_permutations()
+    get_permutations(0..4)
       |> Enum.map(fn phase_settings -> run_amplifiers(computer, phase_settings) end)
       |> Enum.max()
   end
 
-  def get_permutations(), do: get_permutations(Enum.to_list 0..4)
+  def get_permutations(%Range{} = amp_setting_range), do: get_permutations(Enum.to_list amp_setting_range)
   def get_permutations([]), do: [[]]
   def get_permutations(list), do: for elem <- list, rest <- get_permutations(list--[elem]), do: [elem|rest]
 
@@ -198,7 +199,7 @@ defmodule Amplifier do
 
   def run(amplifier, input) do
     Agent.update(amplifier, fn {memory, phase_setting, i, latest_output} ->
-      Seven.calculate(memory, Enum.concat(phase_setting, [input]), i)
+      IntComputer.calculate(memory, Enum.concat(phase_setting, [input]), i)
       |> case do
         {:exit, _} -> {memory, [], -1, latest_output}
         { updated_memory, updated_index, output } -> { updated_memory, [], updated_index, output }
