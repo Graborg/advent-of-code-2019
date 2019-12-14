@@ -38,10 +38,10 @@ defmodule Seven do
   end
 
   # print the value
-  def execute({4, value, _index}, _all_ints, _) do
+  def execute({4, value, updated_index}, memory, _) do
     IO.puts("OUTPUT! #{value}\n\n\n")
 
-    {:exit, value}
+    {:output, memory, updated_index, value}
   end
 
 
@@ -118,7 +118,7 @@ defmodule Seven do
   def calculate(ints, user_input), do: calculate(ints, user_input, 0)
 
   def calculate(memory, user_input, index) do
-    IO.inspect(user_input, label: "user_input")
+    IO.inspect(user_input, label: "user_input", charlists: :as_lists)
     memory
       |> get_arguments(index)
       |> IO.inspect(label: "{op, arg1, (arg2), (output-arg), index}")
@@ -126,7 +126,8 @@ defmodule Seven do
       |> (fn
         { :ok, updated_memory, updated_index, updated_user_input } -> calculate(updated_memory, updated_user_input, updated_index)
         { :ok, updated_memory, updated_index } -> calculate(updated_memory, user_input, updated_index)
-        { :exit, memory } -> memory
+        { :output, updated_memory, updated_index, value} -> { updated_memory, updated_index, value }
+        { :exit, memory } -> { :exit, memory }
       end).()
   end
 
@@ -141,6 +142,36 @@ defmodule Seven do
     calculate(computer, [phase_setting, input])
   end
 
+  def get_max_thruster_feedback_settings(possible_phase_settings, memory) do
+    possible_phase_settings
+      |> Enum.map(&(get_amplifiers(memory, &1)))
+      |> Enum.map(&run_amplifiers_in_loop/1)
+      |> IO.inspect(label: "amplifiers")
+      |> Enum.max()
+  end
+
+  def get_amplifiers(memory, phase_settings) do
+    Enum.map(phase_settings, fn phase_setting -> Amplifier.start_link(memory, phase_setting) end)
+    |> IO.inspect()
+  end
+
+  def run_amplifiers_in_loop(amplifiers), do: run_amplifiers_in_loop(0, amplifiers, 0)
+  def run_amplifiers_in_loop(input, amplifiers, amp_index) do
+    Enum.at(amplifiers, amp_index)
+     |> IO.inspect(label: "running amplifier")
+      |> Amplifier.run(input)
+      |> case do
+        {:halt, output} when amp_index == 4 -> IO.inspect(output, label: "finished")
+        {_status, output} -> run_amplifiers_in_loop(output, amplifiers, Integer.mod(amp_index + 1, 5))
+      end
+  end
+
+  def get_max_thruster_feedback_settings do
+    computer = get_puzzle_input()
+    get_permutations(Enum.to_list 5..9)
+      |> get_max_thruster_feedback_settings(computer)
+  end
+
   def get_max_thruster_settings() do
     computer = get_puzzle_input()
     get_permutations()
@@ -151,5 +182,32 @@ defmodule Seven do
   def get_permutations(), do: get_permutations(Enum.to_list 0..4)
   def get_permutations([]), do: [[]]
   def get_permutations(list), do: for elem <- list, rest <- get_permutations(list--[elem]), do: [elem|rest]
+
+end
+
+
+defmodule Amplifier do
+  use Agent
+
+  def start_link(memory, phase_setting) do
+    Agent.start_link(fn -> {memory, [phase_setting], 0, nil} end)
+      |> case  do
+        {:ok, amplifier} -> amplifier
+      end
+  end
+
+  def run(amplifier, input) do
+    Agent.update(amplifier, fn {memory, phase_setting, i, latest_output} ->
+      Seven.calculate(memory, Enum.concat(phase_setting, [input]), i)
+      |> case do
+        {:exit, _} -> {memory, [], -1, latest_output}
+        { updated_memory, updated_index, output } -> { updated_memory, [], updated_index, output }
+      end
+    end)
+    Agent.get(amplifier, fn
+      {_,_,-1, latest_output } -> {:halt, latest_output}
+      {_,_,_, latest_output } -> {:cont, latest_output}
+    end)
+  end
 
 end
