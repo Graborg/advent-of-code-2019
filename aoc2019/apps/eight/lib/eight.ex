@@ -1,4 +1,24 @@
 defmodule Eight do
+
+  def get_visible_pixels(), do: get_visible_pixels(Utilities.get_puzzle_input(), 25, 6)
+  def get_visible_pixels(input, columns, rows) do
+    input
+      |> create_layers(columns, rows)
+      |> Enum.zip()
+      |> Enum.map(&Tuple.to_list/1)
+      |> Enum.map(&Enum.zip/1)
+      |> Enum.map(fn tuple ->
+        tuple
+        |> Enum.map(&Tuple.to_list/1)
+        |> Enum.map(&get_pixel_from_layers/1)
+      end)
+      # |> IO.puts()
+  end
+
+  def get_pixel_from_layers(pixel_layers) do
+    pixel_layers |> Enum.find(fn pixel -> pixel != "2" end)
+  end
+
   def get_number_of_1_digits_mul_by_number_of_2_digits_of_layer_with_smallest_amount_of_zeroes() do
     Utilities.get_puzzle_input()
       |> create_layers(25, 6)
@@ -13,7 +33,7 @@ defmodule Eight do
       |> Enum.sum()
   end
 
-  def find_layer_with_fewest_zeroes(layers) do
+  defp find_layer_with_fewest_zeroes(layers) do
     layers
       |> Enum.map(&count_n_in_layer(&1, "0"))
       |> (fn counts ->
