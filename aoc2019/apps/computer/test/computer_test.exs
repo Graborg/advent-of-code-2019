@@ -2,8 +2,9 @@ defmodule ComputerTest do
   use ExUnit.Case
 
   test "produces quine" do
-    {memory, _} = Computer.calculate([109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99], [])
-    assert memory == [109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]
+    input_memory = [109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99]
+    {output_memory, _} = Computer.calculate(input_memory, [])
+    assert Enum.slice(output_memory, 0, Enum.count(input_memory)) == input_memory
   end
 
   test "produces 16 digit number" do

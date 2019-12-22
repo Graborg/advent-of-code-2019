@@ -151,7 +151,7 @@ defmodule Computer do
         %{ :status => :ok, :memory => updated_memory, :index => updated_index, :user_input => updated_user_input } -> calculate(updated_memory, updated_user_input, updated_index, relative_base)
         %{ :status => :ok, :memory => updated_memory, :index => updated_index, :relative_base => updated_relative_base } -> calculate(updated_memory, user_input, updated_index, updated_relative_base)
         %{ :status => :ok, :memory => updated_memory, :index => updated_index } -> calculate(updated_memory, user_input, updated_index, relative_base)
-        %{ :status => :output, :value => value} -> value
+        %{ :status => :output} = output -> {output[:memory], output[:value]}
         %{ :status => :exit} = output -> output[:memory]
       end).()
   end
