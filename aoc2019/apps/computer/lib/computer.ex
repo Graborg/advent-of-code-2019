@@ -57,16 +57,16 @@ defmodule Computer do
     end
   end
 
-  def opcode_to_readable(1), do: :add
-  def opcode_to_readable(2), do: :multiply
-  def opcode_to_readable(3), do: :store_user_input
-  def opcode_to_readable(4), do: :output
-  def opcode_to_readable(5), do: :jump_if_non_zero
-  def opcode_to_readable(6), do: :jump_if_zero
-  def opcode_to_readable(7), do: :store_1_if_lt
-  def opcode_to_readable(8), do: :store_1_if_eq
-  def opcode_to_readable(9), do: :increment_relative_base
-  def opcode_to_readable(99), do: :exit
+  def opcode_to_readable(1), do: {:add, 2}
+  def opcode_to_readable(2), do: {:multiply, 2}
+  def opcode_to_readable(3), do: {:store_user_input, 0}
+  def opcode_to_readable(4), do: {:output, 1}
+  def opcode_to_readable(5), do: {:jump_if_non_zero, 2}
+  def opcode_to_readable(6), do: {:jump_if_zero, 2}
+  def opcode_to_readable(7), do: {:store_1_if_lt, 2}
+  def opcode_to_readable(8), do: {:store_1_if_eq, 2}
+  def opcode_to_readable(9), do: {:increment_relative_base, 1}
+  def opcode_to_readable(99), do: {:exit, 0}
 
   def get_arguments(memory, index, relative_base) do
     {modes, opcode} = memory
@@ -80,34 +80,30 @@ defmodule Computer do
     # |> IO.inspect(label: "OPcode")
     |> opcode_to_readable()
     |> case do
-      code when code in [:add, :multiply, :store_1_if_lt, :store_1_if_eq] ->
-        # IO.inspect(Enum.slice(memory, index-1, 4), label: "grabbing 4")
-        no_of_input_arguments = 2
-        [arg1, arg2] = Enum.slice(memory, index, no_of_input_arguments) |> arguments_to_values(Enum.slice(modes, -no_of_input_arguments, no_of_input_arguments), memory, relative_base)
-        index = index + no_of_input_arguments
+      {code, no_of_input_args} when code in [:add, :multiply, :store_1_if_lt, :store_1_if_eq] ->
+        [arg1, arg2] = Enum.slice(memory, index, no_of_input_args) |> arguments_to_values(Enum.slice(modes, -no_of_input_args, no_of_input_args), memory, relative_base)
+        index = index + no_of_input_args
         store_in_position = memory
           |> Enum.at(index)
           |> arguments_to_output_pos(Enum.at(modes, -3, 0), relative_base)
 
         {code, arg1, arg2, store_in_position, index + 1}
-      code when code in [:store_user_input] ->
-        no_of_input_arguments = 1
+      {:store_user_input, _} ->
         store_in_position = memory
           |> Enum.at(index)
           |> arguments_to_output_pos(List.first(modes), relative_base)
-        # IO.inspect(Enum.slice(memory, index-1, 2), label: "grabbing 2 without using modes")
 
-        {code, store_in_position, index + no_of_input_arguments}
-      code when code in [:output, :increment_relative_base] ->
-        # IO.inspect(Enum.slice(memory, index-1, 2), label: "grabbing 2")
-        [value] = Enum.slice(memory, index, 1) |> arguments_to_values(Enum.slice(modes, -1, 1), memory, relative_base)
+          {:store_user_input, store_in_position, index + 1}
+      {code, no_of_input_args} when code in [:output, :increment_relative_base] ->
+        [value] = Enum.slice(memory, index, no_of_input_args) |> arguments_to_values(Enum.slice(modes, -no_of_input_args, no_of_input_args), memory, relative_base)
 
         {code, value, index + 1}
-      code when code in [:jump_if_non_zero, :jump_if_zero] ->
-        [number_to_compare, jump_pos] = Enum.slice(memory, index, 2) |> arguments_to_values(Enum.slice(modes, -2, 2), memory, relative_base)
+      {code, no_of_input_args} when code in [:jump_if_non_zero, :jump_if_zero] ->
+        [number_to_compare, jump_pos] = Enum.slice(memory, index, no_of_input_args)
+          |> arguments_to_values(Enum.slice(modes, -no_of_input_args, no_of_input_args), memory, relative_base)
 
         {code, number_to_compare, jump_pos, index + 2}
-      :exit -> {:exit, memory}
+      {:exit, _} -> {:exit, memory}
       end
   end
 
