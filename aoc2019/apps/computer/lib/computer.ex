@@ -113,7 +113,6 @@ defmodule Computer do
 
   def arguments_to_output_pos(arg, nil, relative_base), do: arguments_to_output_pos(arg, 0, relative_base)
   def arguments_to_output_pos(arg, mode, relative_base) do
-    # IO.inspect(mode, label: "arrggz")
     case mode do
       0 -> arg
       2 -> relative_base + arg
@@ -121,7 +120,6 @@ defmodule Computer do
   end
 
   def arguments_to_values(args, [], memory, relative_base), do: arguments_to_values(args, [0], memory, relative_base)
-
   def arguments_to_values(args, modes, memory, relative_base) do
     # IO.inspect(Enum.count(args) - Enum.count(modes), charlists: :as_lists)
     List.duplicate(0, Enum.count(args) - Enum.count(modes))
