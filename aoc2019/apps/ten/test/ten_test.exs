@@ -47,7 +47,7 @@ defmodule TenTest do
     ...##
     """
 
-    res = Ten.map_to_detections(input)
+    res = Ten.get_best_asteroid(input)
     assert res == {8, {3, 4}}
   end
 
@@ -65,7 +65,7 @@ defmodule TenTest do
     .#....####
     """
 
-    res = Ten.map_to_detections(input)
+    res = Ten.get_best_asteroid(input)
     assert res == {33, {5,8}}
   end
 
@@ -83,7 +83,7 @@ defmodule TenTest do
     .####.###.
     """
 
-    res = Ten.map_to_detections(input)
+    res = Ten.get_best_asteroid(input)
     assert res == {35, {1,2}}
   end
 
@@ -101,7 +101,7 @@ defmodule TenTest do
     .....#.#..
     """
 
-    res = Ten.map_to_detections(input)
+    res = Ten.get_best_asteroid(input)
     assert res == {41, {6,3}}
   end
 
@@ -129,12 +129,12 @@ defmodule TenTest do
     ###.##.####.##.#..##
     """
 
-    res = Ten.map_to_detections(input)
+    res = Ten.get_best_asteroid(input)
     assert res == {210, {11,13}}
   end
 
   test "can find astroids in challenge" do
-    res = Ten.map_to_detections()
+    res = Ten.get_best_asteroid()
     assert res == {276, {17, 22}}
   end
 end

@@ -1,8 +1,8 @@
 defmodule Ten do
   def asteroid_map_size(asteroid_map), do: asteroid_map |> String.split("\n") |> List.first() |> String.length()
 
-  def map_to_detections(), do: Utilities.get_puzzle_input() |> map_to_detections()
-  def map_to_detections(input) do
+  def get_best_asteroid(), do: Utilities.get_puzzle_input() |> get_best_asteroid()
+  def get_best_asteroid(input) do
     map_size = asteroid_map_size(input)
     asteroids = input |> get_asteroid_coordinates(map_size)
     asteroids
