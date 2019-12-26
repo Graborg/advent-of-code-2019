@@ -25,21 +25,21 @@ defmodule Ten do
       end)
   end
 
-  def get_trajectory({x_changer, y_changer}) do
-    gcd = Integer.gcd(x_changer, y_changer)
-    smallest_x_changer = Integer.floor_div(x_changer, gcd)
-    smallest_y_changer = Integer.floor_div(y_changer, gcd)
+  def get_trajectory_between({x_1, y_1}, {x_2, y_2}) do
+    {x_path, y_path} = {x_2 - x_1, y_2 - y_1}
+    gcd = Integer.gcd(x_path, y_path)
+    smallest_x_changer = Integer.floor_div(x_path, gcd)
+    smallest_y_changer = Integer.floor_div(y_path, gcd)
 
     {smallest_x_changer, smallest_y_changer}
   end
 
-  def get_blocked_asteroids({x_1, y_1}, asteroids, map_size) do
+  def get_blocked_asteroids({x_1, y_1} = asteroid_1, asteroids, map_size) do
     asteroids
-      |> Enum.map( fn {x_2, y_2} -> {x_2 - x_1, y_2 - y_1}  end)
-      |> Enum.filter(fn e -> e != {0, 0} end)
-      |> Enum.map(fn {x_changer, y_changer} = path ->
-        {x_trajectory, y_trajectory} = get_trajectory(path)
-        get_asteroids_in_blockable_paths(asteroids, {x_1 + x_changer + x_trajectory, y_1 + y_changer + y_trajectory }, {x_trajectory, y_trajectory}, [], map_size)
+      |> Enum.filter(fn e -> e != {x_1, y_1} end)
+      |> Enum.map(fn {x_2, y_2} = asteroid_2 ->
+        {x_trajectory, y_trajectory} = get_trajectory_between(asteroid_1, asteroid_2)
+        get_asteroids_in_blockable_paths(asteroids, {x_2 + x_trajectory, y_2 + y_trajectory }, {x_trajectory, y_trajectory}, [], map_size)
         |> Enum.filter(fn e -> e != nil end)
       end)
       |> Enum.filter(fn e -> !Enum.empty?(e) end)
