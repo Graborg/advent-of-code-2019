@@ -1,7 +1,7 @@
 defmodule Ten do
-  def asteroid_map_size(asteroid_map), do: asteroid_map |> String.split("\n") |> List.first() |> String.length()
+  defp asteroid_map_size(asteroid_map), do: asteroid_map |> String.split("\n") |> List.first() |> String.length()
 
-  def inc_coordinates({x_1, y_1}, {x_2, y_2}), do: {x_1 + x_2, y_1 + y_2}
+  defp inc_coordinates({x_1, y_1}, {x_2, y_2}), do: {x_1 + x_2, y_1 + y_2}
 
   def get_best_asteroid(), do: Utilities.get_puzzle_input() |> get_best_asteroid()
   def get_best_asteroid(input) do
@@ -39,10 +39,10 @@ defmodule Ten do
   def get_blocked_asteroids({x_1, y_1} = asteroid_1, asteroids, map_size) do
     asteroids
       |> Enum.filter(fn e -> e != {x_1, y_1} end)
-      |> Enum.map(fn {x_2, y_2} = asteroid_2 ->
-        {x_trajectory, y_trajectory} = get_trajectory_between(asteroid_1, asteroid_2)
-        get_asteroids_in_blockable_paths(asteroids, {x_2 + x_trajectory, y_2 + y_trajectory }, {x_trajectory, y_trajectory}, [], map_size)
-        |> Enum.filter(fn e -> e != nil end)
+      |> Enum.map(fn asteroid_2 ->
+        trajectory = get_trajectory_between(asteroid_1, asteroid_2)
+
+        get_asteroids_in_blockable_paths(inc_coordinates(asteroid_2, trajectory), trajectory, asteroids, [], map_size)
       end)
       |> Enum.filter(fn e -> !Enum.empty?(e) end)
       |> List.flatten()
@@ -52,14 +52,18 @@ defmodule Ten do
 
   defguard is_inside_map?(x, y, map_size) when x < 0 or y < 0 or x >= map_size or y >= map_size
 
-  def get_asteroids_in_blockable_paths(_, {x, y}, _, res, map_size) when is_inside_map?(x, y, map_size), do: res
-  def get_asteroids_in_blockable_paths(asteroids, asteroid_1, trajectory, asteroids_blocked, map_size) do
-    new_asteroid_blocked = asteroid_at_coordinate(asteroids, asteroid_1)
-    asteroids
-      |> get_asteroids_in_blockable_paths(inc_coordinates(asteroid_1, trajectory), trajectory, List.insert_at(asteroids_blocked, -1, new_asteroid_blocked), map_size)
+  def get_asteroids_in_blockable_paths({x, y}, _, _, res, map_size) when is_inside_map?(x, y, map_size), do: res
+  def get_asteroids_in_blockable_paths(asteroid_1, trajectory, asteroids,  asteroids_blocked, map_size) do
+    updated_asteroids_blocked = asteroids
+      |> asteroid_at_coordinate(asteroid_1)
+      |> Kernel.++(asteroids_blocked)
+
+    asteroid_1
+      |> inc_coordinates(trajectory)
+      |> get_asteroids_in_blockable_paths(trajectory, asteroids, updated_asteroids_blocked, map_size)
   end
 
-  def asteroid_at_coordinate(asteroids, coordinates), do: Enum.find(asteroids, &(&1 == coordinates))
+  def asteroid_at_coordinate(asteroids, coordinates), do: [Enum.find(asteroids, &(&1 == coordinates))] |> Enum.filter(&(&1))
 
   def coordinates_to_index({x, y}, map_size), do: x + y * map_size
   def index_to_coordinates(index, map_size), do: {rem(index, map_size), div(index, map_size)}
