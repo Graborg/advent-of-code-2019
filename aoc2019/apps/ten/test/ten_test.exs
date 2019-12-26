@@ -40,16 +40,17 @@ defmodule TenTest do
 
   test "can find astroids 4x4" do
     input = """
-      .#..#
-      .....
-      #####
-      ....#
-      ...##
+    .#..#
+    .....
+    #####
+    ....#
+    ...##
     """
 
-    res = Ten.map_to_detections(input, 5)
+    res = Ten.map_to_detections(input)
     assert res == {8, {3, 4}}
   end
+
   test "can find astroids in big" do
     input = """
     ......#.#.
@@ -64,9 +65,10 @@ defmodule TenTest do
     .#....####
     """
 
-    res = Ten.map_to_detections(input, 10)
+    res = Ten.map_to_detections(input)
     assert res == {33, {5,8}}
   end
+
   test "can find astroids in bigg" do
     input = """
     #.#...#.#.
@@ -81,7 +83,7 @@ defmodule TenTest do
     .####.###.
     """
 
-    res = Ten.map_to_detections(input, 10)
+    res = Ten.map_to_detections(input)
     assert res == {35, {1,2}}
   end
 
@@ -99,7 +101,7 @@ defmodule TenTest do
     .....#.#..
     """
 
-    res = Ten.map_to_detections(input, 10)
+    res = Ten.map_to_detections(input)
     assert res == {41, {6,3}}
   end
 
@@ -127,7 +129,7 @@ defmodule TenTest do
     ###.##.####.##.#..##
     """
 
-    res = Ten.map_to_detections(input, 20)
+    res = Ten.map_to_detections(input)
     assert res == {210, {11,13}}
   end
 
