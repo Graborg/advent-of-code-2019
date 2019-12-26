@@ -7,8 +7,10 @@ defmodule Ten do
   def get_best_asteroid(input) do
     map_size = asteroid_map_size(input)
     asteroids = input |> get_asteroid_coordinates(map_size)
+
     asteroids
       |> Enum.map(&(get_blocked_asteroids(&1, asteroids, map_size)))
+      |> Enum.map(&Enum.count/1)
       |> Enum.map(fn blocked_asteroids -> Enum.count(asteroids) - 1 - blocked_asteroids end)
       |> Enum.zip(asteroids)
       |> Enum.sort(fn {v1, _}, {v2, _} -> v1 > v2 end)
@@ -36,18 +38,16 @@ defmodule Ten do
     {smallest_x_changer, smallest_y_changer}
   end
 
-  def get_blocked_asteroids({x_1, y_1} = asteroid_1, asteroids, map_size) do
+  def get_blocked_asteroids(asteroid_1, asteroids, map_size) do
     asteroids
-      |> Enum.filter(fn e -> e != {x_1, y_1} end)
+      |> Enum.filter(fn asteroid_2 -> asteroid_2 != asteroid_1 end)
       |> Enum.map(fn asteroid_2 ->
         trajectory = get_trajectory_between(asteroid_1, asteroid_2)
 
         get_asteroids_in_blockable_paths(inc_coordinates(asteroid_2, trajectory), trajectory, asteroids, [], map_size)
       end)
-      |> Enum.filter(fn e -> !Enum.empty?(e) end)
       |> List.flatten()
       |> Enum.into(MapSet.new())
-      |> Enum.count()
   end
 
   defguard is_inside_map?(x, y, map_size) when x < 0 or y < 0 or x >= map_size or y >= map_size
