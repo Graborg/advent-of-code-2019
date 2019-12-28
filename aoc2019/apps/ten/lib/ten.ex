@@ -30,8 +30,6 @@ defmodule Ten do
           |> inc_coordinates(asteroid_2)
           |> get_asteroids_in_trajectory(trajectory, asteroids, [], map_size)
       end)
-      |> List.flatten()
-      |> Enum.into(MapSet.new())
   end
 
   def get_trajectory_between({x_1, y_1}, {x_2, y_2}) do
@@ -67,5 +65,87 @@ defmodule Ten do
       |> Enum.zip(asteroids)
       |> Enum.sort(fn {v1, _}, {v2, _} -> v1 > v2 end)
       |> List.first()
+      |> Enum.into(MapSet.new())
+      |> List.flatten()
+  end
+
+  def get_asteroid_vaporized(input, nr, laser_asteroid \\ {11,13}) do
+    map_size = asteroid_map_size(input)
+    asteroids = input |> get_asteroid_coordinates(map_size)
+
+    asteroids
+      |> Enum.map(&(get_blocked_asteroids(&1, asteroids, map_size)))
+      |> Enum.zip(asteroids)
+      |> Enum.find(fn {_asteroids, asteroid} -> asteroid == laser_asteroid end)
+      |> elem(0)
+      |> Enum.filter(&(!Enum.empty?(&1)))
+      |> Enum.concat(asteroids |> Enum.map(&List.wrap/1))
+      |> filter_astroids_in_subsets()
+      |> Enum.filter(&(&1 != [laser_asteroid]))
+      |> Enum.map(&(add_trajectory_from_laser(&1, laser_asteroid)))
+      |> Enum.map(&calculate_angle/1)
+      |> Enum.group_by(&(elem(&1, 0)), fn {angle, asteroids} -> asteroids end )
+      |> Enum.sort(fn {angle_1, _}, {angle_2, _} -> angle_1 < angle_2 end)
+      |> Enum.map(fn {angle, asteroids} -> {angle, List.flatten(asteroids)} end)
+      |> Enum.map(fn {angle, asteroids} -> {angle, Enum.sort_by(asteroids, &distance_to_laser(laser_asteroid, &1), &<=/2)} end)
+      |> Enum.map(&IO.inspect/1)
+      |> shoot_them_all()
+      |> Enum.at(nr - 1)
+  end
+
+  defp distance_to_laser({laser_x, laser_y}, {asteroid_x, asteroid_y}) do
+    abs(laser_x + laser_y - asteroid_x - asteroid_y)
+  end
+
+  def calculate_angle({{x, y}, asteroids_coordinates}) do
+    angle = case y do
+      0 when x > 0 -> 90
+      0 when x < 0 -> 270
+      y when x == 0 and y < 0 -> 0
+      y when x == 0 and y > 0 -> 180
+      y -> ElixirMath.atan(x / y * -1) |> normalize_angle()
+    end
+
+    {angle, asteroids_coordinates}
+  end
+  defp normalize_angle(angle) when angle < 0, do: angle + 360
+  defp normalize_angle(angle), do: angle
+
+  def add_trajectory_from_laser([asteroid | _rest] = asteroids_in_trajectory, laser_asteroid) do
+    trajectory = get_trajectory_between(laser_asteroid, asteroid)
+
+    {trajectory, asteroids_in_trajectory}
+  end
+
+  def shoot_them_all(asteroids), do: shoot_them_all(asteroids, 0, [])
+  def shoot_them_all([], _, res), do: res
+  def shoot_them_all(asteroids, index, res) do
+    IO.inspect(Enum.at(asteroids, index))
+    IO.inspect(index)
+    with {{angle, asteroids}, popped_list} <- List.pop_at(asteroids, index),
+                       [in_crosshair|rest] <- asteroids,
+                        lasered_asteroids <- List.insert_at(res, -1, in_crosshair)
+      do
+        case Enum.count(rest) do
+          x when x > 0 -> List.insert_at(popped_list, index, {angle, rest})
+            |> shoot_them_all(index + 1, lasered_asteroids)
+          _ -> shoot_them_all(popped_list, index, lasered_asteroids)
+        end
+      else
+        {nil, asteroids} -> shoot_them_all(asteroids, 0, res) # end of list, restart
+      end
+  end
+
+  def filter_astroids_in_subsets(asteroids) do
+    asteroid_mapsets = asteroids |> Enum.map(&MapSet.new/1)
+
+    Enum.filter(asteroid_mapsets, fn blocked_asteroids ->
+      asteroid_mapsets
+        |> Enum.filter(&(&1 != blocked_asteroids))
+        |> Enum.any?(&(MapSet.subset?(blocked_asteroids, &1)))
+        |> Kernel.not()
+      end)
+      |> Enum.map(&MapSet.to_list/1)
+      |> Enum.uniq()
   end
 end
