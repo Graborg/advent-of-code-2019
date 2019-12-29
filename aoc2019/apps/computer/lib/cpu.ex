@@ -15,7 +15,7 @@ defmodule CPU do
   # print the value
   def execute({:output, value, computer}) do
     value |> IO.inspect(label: "OUTPUT!")
-    %{ :status => :ok, :computer => Map.put(computer, :latest_output, value)}
+    %{ :status => :ok, :computer => Map.update!(computer, :outputs, &(&1 ++ [value]))}
   end
 
 
