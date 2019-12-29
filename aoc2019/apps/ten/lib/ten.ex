@@ -69,6 +69,7 @@ defmodule Ten do
       |> List.flatten()
   end
 
+  def get_asteroid_vaporized(), do: Utilities.get_puzzle_input() |> get_asteroid_vaporized(200, {17, 22})
   def get_asteroid_vaporized(input, nr, laser_asteroid \\ {11,13}) do
     map_size = asteroid_map_size(input)
     asteroids = input |> get_asteroid_coordinates(map_size)
@@ -84,11 +85,10 @@ defmodule Ten do
       |> Enum.filter(&(&1 != [laser_asteroid]))
       |> Enum.map(&(add_trajectory_from_laser(&1, laser_asteroid)))
       |> Enum.map(&calculate_angle/1)
-      |> Enum.group_by(&(elem(&1, 0)), fn {angle, asteroids} -> asteroids end )
+      |> Enum.group_by(&(elem(&1, 0)), fn {_angle, asteroids} -> asteroids end )
       |> Enum.sort(fn {angle_1, _}, {angle_2, _} -> angle_1 < angle_2 end)
       |> Enum.map(fn {angle, asteroids} -> {angle, List.flatten(asteroids)} end)
       |> Enum.map(fn {angle, asteroids} -> {angle, Enum.sort_by(asteroids, &distance_to_laser(laser_asteroid, &1), &<=/2)} end)
-      |> Enum.map(&IO.inspect/1)
       |> shoot_them_all()
       |> Enum.at(nr - 1)
   end
@@ -99,17 +99,17 @@ defmodule Ten do
 
   def calculate_angle({{x, y}, asteroids_coordinates}) do
     angle = case y do
-      0 when x > 0 -> 90
+      0 when x >= 0 -> 90
+      y when y > 0 and x == 0 -> 180
       0 when x < 0 -> 270
-      y when x == 0 and y < 0 -> 0
-      y when x == 0 and y > 0 -> 180
-      y -> ElixirMath.atan(x / y * -1) |> normalize_angle()
+      y when y < 0 and x == 0 -> 0
+      y when x > 0 and y > 0 -> ElixirMath.atan(abs(y/ x)) * 180 / ElixirMath.pi() |> Kernel.+(90) # second q
+      y when x < 0 and y < 0 -> ElixirMath.atan(abs(y/ x)) * 180 / ElixirMath.pi() |> Kernel.+(270) # fourth q
+      y when x < 0 and y > 0 -> ElixirMath.atan(abs(x/ y)) * 180 / ElixirMath.pi() |> Kernel.+(180) # third q
+      y when x > 0 and y < 0 -> ElixirMath.atan(abs(x/ y)) * 180 / ElixirMath.pi() # first q
     end
-
     {angle, asteroids_coordinates}
   end
-  defp normalize_angle(angle) when angle < 0, do: angle + 360
-  defp normalize_angle(angle), do: angle
 
   def add_trajectory_from_laser([asteroid | _rest] = asteroids_in_trajectory, laser_asteroid) do
     trajectory = get_trajectory_between(laser_asteroid, asteroid)
@@ -120,11 +120,9 @@ defmodule Ten do
   def shoot_them_all(asteroids), do: shoot_them_all(asteroids, 0, [])
   def shoot_them_all([], _, res), do: res
   def shoot_them_all(asteroids, index, res) do
-    IO.inspect(Enum.at(asteroids, index))
-    IO.inspect(index)
     with {{angle, asteroids}, popped_list} <- List.pop_at(asteroids, index),
-                       [in_crosshair|rest] <- asteroids,
-                        lasered_asteroids <- List.insert_at(res, -1, in_crosshair)
+                      [in_crosshair|rest]  <- asteroids,
+                      lasered_asteroids    <- List.insert_at(res, -1, in_crosshair)
       do
         case Enum.count(rest) do
           x when x > 0 -> List.insert_at(popped_list, index, {angle, rest})
@@ -132,7 +130,8 @@ defmodule Ten do
           _ -> shoot_them_all(popped_list, index, lasered_asteroids)
         end
       else
-        {nil, asteroids} -> shoot_them_all(asteroids, 0, res) # end of list, restart
+        {nil, asteroids} ->
+          shoot_them_all(asteroids, 0, res) # end of list, restart
       end
   end
 
