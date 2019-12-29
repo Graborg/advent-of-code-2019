@@ -10,12 +10,12 @@ defmodule Computer do
 
   def check_stop_condition(stop_condition, computer) do
     case stop_condition.(computer) do
-     true -> :ok
-     false -> :exit
+      true -> :exit
+      false -> :ok
     end
   end
 
-  def run(memory, user_input, stop_condition \\ (fn e -> true end)), do: do_run(init_computer(memory, user_input), stop_condition)
+  def run(memory, user_input, stop_condition \\ (fn e -> false end)), do: do_run(init_computer(memory, user_input), stop_condition)
   def do_run(computer, stop_condition) do
     with :ok <- check_stop_condition(stop_condition, computer)
       do
