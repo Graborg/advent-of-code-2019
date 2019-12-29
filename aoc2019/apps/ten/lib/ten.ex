@@ -60,13 +60,14 @@ defmodule Ten do
 
     asteroids
       |> Enum.map(&(get_blocked_asteroids(&1, asteroids, map_size)))
+      |> Enum.map(&List.flatten/1)
+      |> Enum.filter(fn e -> !Enum.empty?(e) end)
+      |> Enum.map(&Enum.into(&1, MapSet.new()))
       |> Enum.map(&Enum.count/1)
       |> Enum.map(fn blocked_asteroids -> Enum.count(asteroids) - 1 - blocked_asteroids end)
       |> Enum.zip(asteroids)
       |> Enum.sort(fn {v1, _}, {v2, _} -> v1 > v2 end)
       |> List.first()
-      |> Enum.into(MapSet.new())
-      |> List.flatten()
   end
 
   def get_asteroid_vaporized(), do: Utilities.get_puzzle_input() |> get_asteroid_vaporized(200, {17, 22})
