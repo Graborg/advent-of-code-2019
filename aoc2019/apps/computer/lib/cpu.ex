@@ -5,8 +5,8 @@ defmodule CPU do
 
   # Take user input and store at storage_pos
   def execute({:store_user_input, storage_pos, computer}) do
-    [user_instruction | rest_of_instructions] = computer[:user_input]
-
+    [user_instruction | rest_of_instructions] = Map.get(computer, :user_input)
+    IO.inspect(Map.get(computer, :user_input))
     computer
       |> store(user_instruction, storage_pos)
       |> Map.put(:user_input, rest_of_instructions)
@@ -14,7 +14,7 @@ defmodule CPU do
 
   # print the value
   def execute({:output, value, computer}) do
-    value |> IO.inspect(label: "OUTPUT!")
+    value |> IO.inspect(label: "OUTPUT!", charlists: :as_lists)
     %{ :status => :ok, :computer => Map.update!(computer, :outputs, &(&1 ++ [value]))}
   end
 

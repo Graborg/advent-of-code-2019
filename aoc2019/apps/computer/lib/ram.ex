@@ -11,23 +11,25 @@ defmodule RAM do
   defp opcode_to_readable(99), do: {:exit, 0}
 
   def get_args_from_computer(%{:memory => memory, :index => index} = computer, no_of_args) do
+    IO.inspect(index, label: "index", charlists: :as_lists)
     args = memory |> Enum.slice(index, no_of_args)
+    IO.inspect(args, label: "args", charlists: :as_lists)
     {args, inc_cursor(computer, no_of_args)}
   end
 
   def inc_cursor(computer, step), do: Map.update!(computer, :index, &(&1 + step))
 
   def get_next_instruction(computer) do
-    {modes, opcode} = computer[:memory]
-      |> Enum.at(computer[:index])
+    # IO.inspect(Map.get(computer, :memory), charlists: :as_lists)
+    {modes, opcode} = Map.get(computer, :memory)
+      |> Enum.at(Map.get(computer, :index))
       |> Integer.digits()
       |> Enum.split(-2)
     computer = inc_cursor(computer, 1)
-
     opcode
       |> Integer.undigits()
       |> opcode_to_readable()
-      |> IO.inspect(label: "OPcode")
+      |> IO.inspect(label: "OPcode", charlists: :as_lists)
       |> case do
         {code, no_of_input_args} when code in [:add, :multiply, :store_1_if_lt, :store_1_if_eq] ->
           {[arg1, arg2], computer} = computer
@@ -67,23 +69,30 @@ defmodule RAM do
       0 -> {arg, computer}
       2 -> {computer[:relative_base] + arg, computer}
     end
+    |> (fn u ->
+      IO.inspect(elem(u, 0), label: "output pos")
+      u
+    end).()
   end
 
   def arguments_to_values({args, computer}, []), do: arguments_to_values({args, computer}, [0])
   def arguments_to_values({args, computer}, modes) do
+    IO.inspect(args, label: "args", charlists: :as_lists)
+    IO.inspect(modes, label: "modes", charlists: :as_lists)
     values = List.duplicate(0, Enum.count(args) - Enum.count(modes))
       |> Enum.concat(modes)
       |> Enum.reverse()
       |> Enum.zip(args)
-      # |> IO.inspect(label: "Modes and values")
+      # |> IO.inspect(label: "Modes and values", charlists: :as_lists)
       |> Enum.map(fn
-        {0 = _mode, digit} -> Enum.at(computer[:memory], digit)
+        {0 = _mode, digit} -> Enum.at(Map.get(computer, :memory, :none), digit)
         {1 = _mode, digit} -> digit
-        {2 = _mode, digit} -> Enum.at(computer[:memory], digit + computer[:relative_base])
+        {2 = _mode, digit} -> Enum.at(Map.get(computer, :memory), digit + Map.get(computer, :relative_base))
       end)
-
+    IO.inspect(values, label: "vaalues", charlists: :as_lists)
     {values, computer}
   end
 
   def extend_memory(memory), do: Enum.concat(memory, List.duplicate(0, 10000000))
+  # def extend_memory(memory), do: Enum.concat(memory, List.duplicate(0, 100000))
 end
